@@ -1,5 +1,6 @@
 import React, {useRef, useState} from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   StyleSheet,
@@ -11,14 +12,17 @@ import {
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../App';
 import DismissKeyboardView from '../components/DismissKeyboardView';
+import axios, {AxiosError} from 'axios';
+import Config from 'react-native-config';
+import EncryptedStorage from 'react-native-encrypted-storage';
 
 type SignInScreenProps = NativeStackScreenProps<RootStackParamList, 'SignUp'>;
 
 function SignUp({navigation}: SignInScreenProps) {
+  const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-
   const canGoNext = email && password;
 
   const emailRef = useRef<TextInput | null>();
@@ -35,7 +39,9 @@ function SignUp({navigation}: SignInScreenProps) {
     setName(text.trim());
   };
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
+    if (loading) return;
+
     if (!email || !email.trim()) {
       return Alert.alert('알림', '이메일을 입력해주세요');
     }
@@ -59,8 +65,29 @@ function SignUp({navigation}: SignInScreenProps) {
       );
     }
     console.log(email, name, password);
+    // await EncryptedStorage.setItem('키', '값sss');
+    // await EncryptedStorage.removeItem('키');
+    // const 값 = await EncryptedStorage.getItem('키');
 
-    Alert.alert('알림', '회원가입 되었습니다');
+    try {
+      setLoading(true);
+      const response = await axios.post(`http://localhost:3105/user`, {
+        email,
+        name,
+        password,
+      });
+      setLoading(false);
+
+      console.log(response);
+      Alert.alert('알림', '회원가입 되었습니다');
+      navigation.navigate('SignIn');
+    } catch (error) {
+      const errorResponse = (error as AxiosError).response;
+      console.log(errorResponse.data.message);
+      Alert.alert('알림', errorResponse.data.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toSignUp = () => {
@@ -128,8 +155,13 @@ function SignUp({navigation}: SignInScreenProps) {
             canGoNext
               ? [styles.loginButton, styles.loginButtonActive]
               : styles.loginButton
-          }>
-          <Text style={styles.loginButtonText}>회원가입</Text>
+          }
+          disabled={!canGoNext || loading}>
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.loginButtonText}>회원가입</Text>
+          )}
         </Pressable>
       </View>
     </DismissKeyboardView>
