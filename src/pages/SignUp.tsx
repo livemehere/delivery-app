@@ -13,8 +13,6 @@ import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../App';
 import DismissKeyboardView from '../components/DismissKeyboardView';
 import axios, {AxiosError} from 'axios';
-import Config from 'react-native-config';
-import EncryptedStorage from 'react-native-encrypted-storage';
 
 type SignInScreenProps = NativeStackScreenProps<RootStackParamList, 'SignUp'>;
 
@@ -65,9 +63,6 @@ function SignUp({navigation}: SignInScreenProps) {
       );
     }
     console.log(email, name, password);
-    // await EncryptedStorage.setItem('키', '값sss');
-    // await EncryptedStorage.removeItem('키');
-    // const 값 = await EncryptedStorage.getItem('키');
 
     try {
       setLoading(true);

@@ -1,5 +1,6 @@
 import React, {useRef, useState} from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   StyleSheet,
@@ -11,12 +12,17 @@ import {
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../App';
 import DismissKeyboardView from '../components/DismissKeyboardView';
+import {useAppDispatch} from '../store';
+import userSlice from '../slices/user';
+import axios from 'axios';
 
 type SignInScreenProps = NativeStackScreenProps<RootStackParamList, 'SignIn'>;
 
 function SignIn({navigation}: SignInScreenProps) {
+  const dispatch = useAppDispatch();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const canGoNext = email && password;
 
   const emailRef = useRef<TextInput | null>();
@@ -29,14 +35,40 @@ function SignIn({navigation}: SignInScreenProps) {
     setPassword(text);
   };
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (!email || !email.trim()) {
       return Alert.alert('알림', '이메일을 입력해주세요');
     }
     if (!password || !password.trim()) {
       return Alert.alert('알림', '비밀번호를 입력해주세요');
     }
-    Alert.alert('알림', '로그인 되었습니다');
+    try {
+      setLoading(true);
+      const response = await axios.post(`http://localhost:3105/login`, {
+        email,
+        password,
+      });
+      console.log(response.data);
+      Alert.alert('알림', '로그인 되었습니다.');
+      dispatch(
+        userSlice.actions.setUser({
+          name: response.data.data.name,
+          email: response.data.data.email,
+          accessToken: response.data.data.accessToken,
+        }),
+      );
+      await EncryptedStorage.setItem(
+        'refreshToken',
+        response.data.data.refreshToken,
+      );
+    } catch (error) {
+      const errorResponse = (error as AxiosError).response;
+      if (errorResponse) {
+        Alert.alert('알림', errorResponse.data.message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const toSignUp = () => {
@@ -88,7 +120,11 @@ function SignIn({navigation}: SignInScreenProps) {
               ? [styles.loginButton, styles.loginButtonActive]
               : styles.loginButton
           }>
-          <Text style={styles.loginButtonText}>로그인</Text>
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.loginButtonText}>로그인</Text>
+          )}
         </Pressable>
       </View>
       <View style={styles.buttonZone}>
